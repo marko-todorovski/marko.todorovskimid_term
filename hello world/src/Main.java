@@ -1,7 +1,7 @@
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
+//r//
 public class Main {
     public static void main(String[] args) {
         Path filepath = Paths.get("log.txt");
