@@ -2,8 +2,15 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/Vezbi/Chat Server and Chat Client/Chat Server and Chat Client.iml" filepath="$PROJECT_DIR$/Vezbi/Chat Server and Chat Client/Chat Server and Chat Client.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Vezbi/ChatClient and  ChatServer/ChatClient and  ChatServer.iml" filepath="$PROJECT_DIR$/Vezbi/ChatClient and  ChatServer/ChatClient and  ChatServer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Vezbi/Counter/Counter.iml" filepath="$PROJECT_DIR$/Vezbi/Counter/Counter.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Hashtag Message Board/Hashtag Message Board.iml" filepath="$PROJECT_DIR$/Hashtag Message Board/Hashtag Message Board.iml" />
       <module fileurl="file://$PROJECT_DIR$/Parallel File Reader/Parallel File Reader.iml" filepath="$PROJECT_DIR$/Parallel File Reader/Parallel File Reader.iml" />
       <module fileurl="file://$PROJECT_DIR$/hello world/Simple FIle logger.iml" filepath="$PROJECT_DIR$/hello world/Simple FIle logger.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Vezbi/TimeServer/TimeServer.iml" filepath="$PROJECT_DIR$/Vezbi/TimeServer/TimeServer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Vezbi/Vezbi.iml" filepath="$PROJECT_DIR$/Vezbi/Vezbi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Vezbi/WordCounterTask and ParallelReader/WordCounterTask and ParallelReader.iml" filepath="$PROJECT_DIR$/Vezbi/WordCounterTask and ParallelReader/WordCounterTask and ParallelReader.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/marko.todorovskimid_term.iml" filepath="$PROJECT_DIR$/.idea/marko.todorovskimid_term.iml" />
     </modules>
   </component>

@@ -10,7 +10,8 @@ public class Main {
 
         try (FileWriter writer = new FileWriter(file)) {
             writer.write(content + System.lineSeparator());
-            System.out.println("Content written to file: " + content);
+            System.out.println("Content written to file: " + content
+            );
         } catch (IOException e) {
             System.out.println("Error: Unable to write to file");
         }
