@@ -1,0 +1,360 @@
+Exercise 1:
+
+Create Spring boot application for simple library console application
+
+current books should be loaded from application properties
+there should be option for adding new book
+there should be option for listing the available books
+there should be option to reserve the books
+if one book is reserved should not be listed in available books
+the app should be console with menu for the user to send commands and receive response
+use Spring beans for code organization
+for every spring bean write print Creation time and destroy time
+Use Spring SpEL, @Bean, Constructor initialization, application.properties
+
+
+Spring Boot Library Console Application
+
+
+1. Project Structure
+
+src/main/java/com/example/library/
+├── config/
+│   ├── AppConfig.java
+│   └── LibraryConfig.java
+├── model/
+│   └── Book.java
+├── service/
+│   ├── BookService.java
+│   └── ConsoleService.java
+└── LibraryApplication.java
+2. Implementation Files
+
+Book.java (Model)
+
+java
+package com.example.library.model;
+
+import java.time.LocalDateTime;
+
+public class Book {
+    private String title;
+    private String author;
+    private boolean reserved;
+    private LocalDateTime creationTime;
+    private LocalDateTime destroyTime;
+
+    public Book(String title, String author) {
+        this.title = title;
+        this.author = author;
+        this.reserved = false;
+        this.creationTime = LocalDateTime.now();
+    }
+
+    // Getters and setters
+    public String getTitle() { return title; }
+    public String getAuthor() { return author; }
+    public boolean isReserved() { return reserved; }
+    public void setReserved(boolean reserved) { this.reserved = reserved; }
+    public LocalDateTime getCreationTime() { return creationTime; }
+    public LocalDateTime getDestroyTime() { return destroyTime; }
+    public void setDestroyTime(LocalDateTime destroyTime) { this.destroyTime = destroyTime; }
+
+    @Override
+    public String toString() {
+        return "Book{" +
+                "title='" + title + '\'' +
+                ", author='" + author + '\'' +
+                ", reserved=" + reserved +
+                '}';
+    }
+}
+BookService.java (Service)
+
+java
+package com.example.library.service;
+
+import com.example.library.model.Book;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class BookService implements InitializingBean, DisposableBean {
+    private final List<Book> books = new ArrayList<>();
+    private LocalDateTime creationTime;
+    private LocalDateTime destroyTime;
+
+    @Value("#{'${library.initial.books}'.split(';')}")
+    private List<String> initialBooks;
+
+    @PostConstruct
+    public void init() {
+        this.creationTime = LocalDateTime.now();
+        System.out.println("BookService created at: " + creationTime);
+        loadInitialBooks();
+    }
+
+    @PreDestroy
+    public void onDestroy() {
+        this.destroyTime = LocalDateTime.now();
+        System.out.println("BookService destroyed at: " + destroyTime);
+    }
+
+    private void loadInitialBooks() {
+        for (String bookInfo : initialBooks) {
+            String[] parts = bookInfo.split(",");
+            if (parts.length == 2) {
+                books.add(new Book(parts[0].trim(), parts[1].trim()));
+            }
+        }
+    }
+
+    public List<Book> getAvailableBooks() {
+        return books.stream().filter(book -> !book.isReserved()).toList();
+    }
+
+    public void addBook(String title, String author) {
+        books.add(new Book(title, author));
+    }
+
+    public boolean reserveBook(String title) {
+        for (Book book : books) {
+            if (book.getTitle().equalsIgnoreCase(title) && !book.isReserved()) {
+                book.setReserved(true);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        System.out.println("BookService initialization complete");
+    }
+
+    @Override
+    public void destroy() {
+        System.out.println("BookService cleanup complete");
+    }
+}
+ConsoleService.java (Service)
+
+java
+package com.example.library.service;
+
+import com.example.library.model.Book;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.Scanner;
+
+@Service
+public class ConsoleService implements InitializingBean, DisposableBean {
+    private final BookService bookService;
+    private final Scanner scanner;
+    private LocalDateTime creationTime;
+    private LocalDateTime destroyTime;
+
+    @Autowired
+    public ConsoleService(BookService bookService) {
+        this.bookService = bookService;
+        this.scanner = new Scanner(System.in);
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        this.creationTime = LocalDateTime.now();
+        System.out.println("ConsoleService created at: " + creationTime);
+        startConsole();
+    }
+
+    @Override
+    public void destroy() {
+        this.destroyTime = LocalDateTime.now();
+        System.out.println("ConsoleService destroyed at: " + destroyTime);
+        scanner.close();
+    }
+
+    private void startConsole() {
+        boolean running = true;
+        while (running) {
+            printMenu();
+            String choice = scanner.nextLine();
+            switch (choice) {
+                case "1":
+                    listAvailableBooks();
+                    break;
+                case "2":
+                    addNewBook();
+                    break;
+                case "3":
+                    reserveBook();
+                    break;
+                case "4":
+                    running = false;
+                    break;
+                default:
+                    System.out.println("Invalid option. Please try again.");
+            }
+        }
+    }
+
+    private void printMenu() {
+        System.out.println("\nLibrary Management System");
+        System.out.println("1. List available books");
+        System.out.println("2. Add new book");
+        System.out.println("3. Reserve a book");
+        System.out.println("4. Exit");
+        System.out.print("Enter your choice: ");
+    }
+
+    private void listAvailableBooks() {
+        System.out.println("\nAvailable Books:");
+        List<Book> availableBooks = bookService.getAvailableBooks();
+        if (availableBooks.isEmpty()) {
+            System.out.println("No books available.");
+        } else {
+            availableBooks.forEach(System.out::println);
+        }
+    }
+
+    private void addNewBook() {
+        System.out.print("Enter book title: ");
+        String title = scanner.nextLine();
+        System.out.print("Enter author name: ");
+        String author = scanner.nextLine();
+        bookService.addBook(title, author);
+        System.out.println("Book added successfully!");
+    }
+
+    private void reserveBook() {
+        System.out.print("Enter title of the book to reserve: ");
+        String title = scanner.nextLine();
+        if (bookService.reserveBook(title)) {
+            System.out.println("Book reserved successfully!");
+        } else {
+            System.out.println("Book not available or already reserved.");
+        }
+    }
+}
+LibraryConfig.java (Configuration)
+
+java
+package com.example.library.config;
+
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+
+@Configuration
+@ComponentScan(basePackages = "com.example.library")
+@PropertySource("classpath:application.properties")
+public class LibraryConfig {
+}
+AppConfig.java (Configuration)
+
+java
+package com.example.library.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.Scanner;
+
+@Configuration
+public class AppConfig {
+    @Bean
+    public Scanner scanner() {
+        return new Scanner(System.in);
+    }
+}
+LibraryApplication.java (Main Class)
+
+java
+package com.example.library;
+
+import com.example.library.service.ConsoleService;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+@SpringBootApplication
+public class LibraryApplication implements CommandLineRunner {
+    private final ConsoleService consoleService;
+
+    public LibraryApplication(ConsoleService consoleService) {
+        this.consoleService = consoleService;
+    }
+
+    public static void main(String[] args) {
+        SpringApplication.run(LibraryApplication.class, args);
+    }
+
+    @Override
+    public void run(String... args) {
+        // The console service will handle the interaction
+    }
+}
+3. application.properties
+
+properties
+# Initial books in the format: title,author;title,author
+library.initial.books=The Great Gatsby,F. Scott Fitzgerald;To Kill a Mockingbird,Harper Lee;1984,George Orwell
+4. pom.xml
+
+xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.1.0</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.example</groupId>
+    <artifactId>library</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>library</name>
+    <description>Library Console Application</description>
+
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
