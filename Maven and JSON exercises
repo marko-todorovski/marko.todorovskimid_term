@@ -262,3 +262,4 @@ class LocalDateDeserializer extends com.fasterxml.jackson.databind.JsonDeseriali
         return LocalDate.parse(p.getValueAsString());
     }
 }
+a
