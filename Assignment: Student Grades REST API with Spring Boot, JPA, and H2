@@ -1,0 +1,700 @@
+# Assignment: Student Grades REST API with Spring Boot, JPA, and H2
+
+## Objective
+Build a Spring Boot REST API to manage students, courses, and grades. The API should support CRUD operations, allow enrolling students in courses, assigning grades, and retrieving the average grade for each course. Data should be persisted using JPA and an in-memory H2 database. Sample data must be initialized at startup.
+
+## Requirements
+
+### 1. Entities
+- **Student**: id, name, enrolled courses, grades
+- **Course**: id, name, enrolled students, grades
+- **Grade**: id, grade value, student, course
+
+### 2. Relationships
+- Many-to-many between students and courses
+- One-to-many between students and grades
+- One-to-many between courses and grades
+
+### 3. REST Endpoints
+Implement endpoints for:
+- CRUD operations for students and courses
+- List students in a course
+- Add/remove students to/from a course
+- Add a grade for a student in a course
+- Get the average grade for a course
+
+### 4. Data Initialization
+- Initialize at least 3 students and 3 courses at startup
+- Enroll students in courses so that each course has students
+- Assign some grades to students in courses so average grade endpoints can be tested immediately
+
+### 5. Database
+- Use H2 in-memory database
+- Enable H2 console for debugging
+
+### 6. JSON Serialization
+- Prevent infinite recursion in JSON responses (e.g., with `@JsonIgnore`)
+
+## Example Endpoints
+- `GET /courses` — List all courses
+- `GET /courses/{courseId}/students` — List students in a course
+- `POST /courses/{courseId}/students` — Add student to a course
+- `DELETE /courses/{courseId}/students/{studentId}` — Remove student from a course
+- `POST /courses/{courseId}/students/{studentId}/grades` — Add grade for student in course
+- `GET /courses/{courseId}/average-grade` — Get average grade for course
+- CRUD endpoints for students and courses
+
+## Deliverables
+- Spring Boot project with all code and configuration
+- Data initialization logic
+- Example Postman collection or documentation for testing
+
+## Bonus
+- Add endpoints to list all grades for a student or course
+- Add validation and error handling
+
+---
+
+**Try to implement this assignment yourself!**
+- Use the requirements above as your guide.
+- Test your API using Postman or curl.
+- Explore the H2 console at `/h2-console` (default username: `sa`, and `password` as password).
+
+
+Student Grades REST API with Spring Boot, JPA, and H2
+
+
+1. Project Structure
+
+src/main/java/com/example/studentgrades/
+├── config/
+│   └── DataInitializer.java
+├── controller/
+│   ├── CourseController.java
+│   ├── GradeController.java
+│   └── StudentController.java
+├── dto/
+│   ├── CourseDTO.java
+│   ├── GradeDTO.java
+│   └── StudentDTO.java
+├── exception/
+│   └── ResourceNotFoundException.java
+├── model/
+│   ├── Course.java
+│   ├── Grade.java
+│   └── Student.java
+├── repository/
+│   ├── CourseRepository.java
+│   ├── GradeRepository.java
+│   └── StudentRepository.java
+├── service/
+│   ├── CourseService.java
+│   ├── GradeService.java
+│   └── StudentService.java
+└── StudentGradesApplication.java
+2. Implementation Files
+
+Model Classes
+
+Student.java
+
+java
+package com.example.studentgrades.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+public class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+
+    @ManyToMany
+    @JoinTable(
+        name = "student_course",
+        joinColumns = @JoinColumn(name = "student_id"),
+        inverseJoinColumns = @JoinColumn(name = "course_id")
+    )
+    @JsonIgnore
+    private List<Course> enrolledCourses = new ArrayList<>();
+
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Grade> grades = new ArrayList<>();
+
+    public Student(String name) {
+        this.name = name;
+    }
+}
+Course.java
+
+java
+package com.example.studentgrades.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+public class Course {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+
+    @ManyToMany(mappedBy = "enrolledCourses")
+    @JsonIgnore
+    private List<Student> enrolledStudents = new ArrayList<>();
+
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Grade> grades = new ArrayList<>();
+
+    public Course(String name) {
+        this.name = name;
+    }
+}
+Grade.java
+
+java
+package com.example.studentgrades.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Data
+@NoArgsConstructor
+public class Grade {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private Double value;
+
+    @ManyToOne
+    @JoinColumn(name = "student_id")
+    private Student student;
+
+    @ManyToOne
+    @JoinColumn(name = "course_id")
+    private Course course;
+
+    public Grade(Double value, Student student, Course course) {
+        this.value = value;
+        this.student = student;
+        this.course = course;
+    }
+}
+Repository Interfaces
+
+StudentRepository.java
+
+java
+package com.example.studentgrades.repository;
+
+import com.example.studentgrades.model.Student;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface StudentRepository extends JpaRepository<Student, Long> {
+}
+CourseRepository.java
+
+java
+package com.example.studentgrades.repository;
+
+import com.example.studentgrades.model.Course;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface CourseRepository extends JpaRepository<Course, Long> {
+}
+GradeRepository.java
+
+java
+package com.example.studentgrades.repository;
+
+import com.example.studentgrades.model.Course;
+import com.example.studentgrades.model.Grade;
+import com.example.studentgrades.model.Student;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+
+public interface GradeRepository extends JpaRepository<Grade, Long> {
+    List<Grade> findByCourse(Course course);
+    List<Grade> findByStudent(Student student);
+    List<Grade> findByStudentAndCourse(Student student, Course course);
+
+    @Query("SELECT AVG(g.value) FROM Grade g WHERE g.course = :course")
+    Double findAverageGradeByCourse(@Param("course") Course course);
+}
+Service Classes
+
+StudentService.java
+
+java
+package com.example.studentgrades.service;
+
+import com.example.studentgrades.exception.ResourceNotFoundException;
+import com.example.studentgrades.model.Student;
+import com.example.studentgrades.repository.StudentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class StudentService {
+    @Autowired
+    private StudentRepository studentRepository;
+
+    public List<Student> getAllStudents() {
+        return studentRepository.findAll();
+    }
+
+    public Student getStudentById(Long id) {
+        return studentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
+    }
+
+    public Student createStudent(Student student) {
+        return studentRepository.save(student);
+    }
+
+    public Student updateStudent(Long id, Student studentDetails) {
+        Student student = getStudentById(id);
+        student.setName(studentDetails.getName());
+        return studentRepository.save(student);
+    }
+
+    public void deleteStudent(Long id) {
+        Student student = getStudentById(id);
+        studentRepository.delete(student);
+    }
+}
+CourseService.java
+
+java
+package com.example.studentgrades.service;
+
+import com.example.studentgrades.exception.ResourceNotFoundException;
+import com.example.studentgrades.model.Course;
+import com.example.studentgrades.model.Student;
+import com.example.studentgrades.repository.CourseRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CourseService {
+    @Autowired
+    private CourseRepository courseRepository;
+
+    @Autowired
+    private StudentService studentService;
+
+    public List<Course> getAllCourses() {
+        return courseRepository.findAll();
+    }
+
+    public Course getCourseById(Long id) {
+        return courseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
+    }
+
+    public Course createCourse(Course course) {
+        return courseRepository.save(course);
+    }
+
+    public Course updateCourse(Long id, Course courseDetails) {
+        Course course = getCourseById(id);
+        course.setName(courseDetails.getName());
+        return courseRepository.save(course);
+    }
+
+    public void deleteCourse(Long id) {
+        Course course = getCourseById(id);
+        courseRepository.delete(course);
+    }
+
+    public List<Student> getStudentsInCourse(Long courseId) {
+        Course course = getCourseById(courseId);
+        return course.getEnrolledStudents();
+    }
+
+    public void enrollStudentInCourse(Long courseId, Long studentId) {
+        Course course = getCourseById(courseId);
+        Student student = studentService.getStudentById(studentId);
+
+        if (!course.getEnrolledStudents().contains(student)) {
+            course.getEnrolledStudents().add(student);
+            student.getEnrolledCourses().add(course);
+            courseRepository.save(course);
+        }
+    }
+
+    public void removeStudentFromCourse(Long courseId, Long studentId) {
+        Course course = getCourseById(courseId);
+        Student student = studentService.getStudentById(studentId);
+
+        course.getEnrolledStudents().remove(student);
+        student.getEnrolledCourses().remove(course);
+        courseRepository.save(course);
+    }
+}
+GradeService.java
+
+java
+package com.example.studentgrades.service;
+
+import com.example.studentgrades.exception.ResourceNotFoundException;
+import com.example.studentgrades.model.Course;
+import com.example.studentgrades.model.Grade;
+import com.example.studentgrades.model.Student;
+import com.example.studentgrades.repository.GradeRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class GradeService {
+    @Autowired
+    private GradeRepository gradeRepository;
+
+    @Autowired
+    private StudentService studentService;
+
+    @Autowired
+    private CourseService courseService;
+
+    public Grade addGradeToStudentInCourse(Long courseId, Long studentId, Double gradeValue) {
+        Student student = studentService.getStudentById(studentId);
+        Course course = courseService.getCourseById(courseId);
+
+        if (!course.getEnrolledStudents().contains(student)) {
+            throw new ResourceNotFoundException("Student is not enrolled in this course");
+        }
+
+        Grade grade = new Grade(gradeValue, student, course);
+        return gradeRepository.save(grade);
+    }
+
+    public List<Grade> getGradesForStudentInCourse(Long courseId, Long studentId) {
+        Student student = studentService.getStudentById(studentId);
+        Course course = courseService.getCourseById(courseId);
+        return gradeRepository.findByStudentAndCourse(student, course);
+    }
+
+    public List<Grade> getGradesForCourse(Long courseId) {
+        Course course = courseService.getCourseById(courseId);
+        return gradeRepository.findByCourse(course);
+    }
+
+    public List<Grade> getGradesForStudent(Long studentId) {
+        Student student = studentService.getStudentById(studentId);
+        return gradeRepository.findByStudent(student);
+    }
+
+    public Double getAverageGradeForCourse(Long courseId) {
+        Course course = courseService.getCourseById(courseId);
+        Double average = gradeRepository.findAverageGradeByCourse(course);
+        return average != null ? average : 0.0;
+    }
+}
+Controller Classes
+
+StudentController.java
+
+java
+package com.example.studentgrades.controller;
+
+import com.example.studentgrades.model.Student;
+import com.example.studentgrades.service.StudentService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/students")
+public class StudentController {
+    @Autowired
+    private StudentService studentService;
+
+    @GetMapping
+    public List<Student> getAllStudents() {
+        return studentService.getAllStudents();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Student> getStudentById(@PathVariable Long id) {
+        return ResponseEntity.ok(studentService.getStudentById(id));
+    }
+
+    @PostMapping
+    public Student createStudent(@RequestBody Student student) {
+        return studentService.createStudent(student);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Student> updateStudent(@PathVariable Long id, @RequestBody Student studentDetails) {
+        return ResponseEntity.ok(studentService.updateStudent(id, studentDetails));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteStudent(@PathVariable Long id) {
+        studentService.deleteStudent(id);
+        return ResponseEntity.ok().build();
+    }
+}
+CourseController.java
+
+java
+package com.example.studentgrades.controller;
+
+import com.example.studentgrades.model.Course;
+import com.example.studentgrades.model.Student;
+import com.example.studentgrades.service.CourseService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/courses")
+public class CourseController {
+    @Autowired
+    private CourseService courseService;
+
+    @GetMapping
+    public List<Course> getAllCourses() {
+        return courseService.getAllCourses();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Course> getCourseById(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.getCourseById(id));
+    }
+
+    @PostMapping
+    public Course createCourse(@RequestBody Course course) {
+        return courseService.createCourse(course);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Course> updateCourse(@PathVariable Long id, @RequestBody Course courseDetails) {
+        return ResponseEntity.ok(courseService.updateCourse(id, courseDetails));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteCourse(@PathVariable Long id) {
+        courseService.deleteCourse(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{courseId}/students")
+    public List<Student> getStudentsInCourse(@PathVariable Long courseId) {
+        return courseService.getStudentsInCourse(courseId);
+    }
+
+    @PostMapping("/{courseId}/students/{studentId}")
+    public ResponseEntity<?> enrollStudentInCourse(
+            @PathVariable Long courseId,
+            @PathVariable Long studentId) {
+        courseService.enrollStudentInCourse(courseId, studentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{courseId}/students/{studentId}")
+    public ResponseEntity<?> removeStudentFromCourse(
+            @PathVariable Long courseId,
+            @PathVariable Long studentId) {
+        courseService.removeStudentFromCourse(courseId, studentId);
+        return ResponseEntity.ok().build();
+    }
+}
+GradeController.java
+
+java
+package com.example.studentgrades.controller;
+
+import com.example.studentgrades.model.Grade;
+import com.example.studentgrades.service.GradeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/courses/{courseId}/students/{studentId}/grades")
+public class GradeController {
+    @Autowired
+    private GradeService gradeService;
+
+    @PostMapping
+    public ResponseEntity<Grade> addGrade(
+            @PathVariable Long courseId,
+            @PathVariable Long studentId,
+            @RequestParam Double grade) {
+        return ResponseEntity.ok(gradeService.addGradeToStudentInCourse(courseId, studentId, grade));
+    }
+
+    @GetMapping
+    public List<Grade> getGradesForStudentInCourse(
+            @PathVariable Long courseId,
+            @PathVariable Long studentId) {
+        return gradeService.getGradesForStudentInCourse(courseId, studentId);
+    }
+
+    @GetMapping("/all")
+    public List<Grade> getAllGradesForCourse(@PathVariable Long courseId) {
+        return gradeService.getGradesForCourse(courseId);
+    }
+
+    @GetMapping("/average")
+    public ResponseEntity<Double> getAverageGradeForCourse(@PathVariable Long courseId) {
+        return ResponseEntity.ok(gradeService.getAverageGradeForCourse(courseId));
+    }
+}
+Exception Handling
+
+ResourceNotFoundException.java
+
+java
+package com.example.studentgrades.exception;
+
+public class ResourceNotFoundException extends RuntimeException {
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+}
+Data Initialization
+
+DataInitializer.java
+
+java
+package com.example.studentgrades.config;
+
+import com.example.studentgrades.model.Course;
+import com.example.studentgrades.model.Grade;
+import com.example.studentgrades.model.Student;
+import com.example.studentgrades.repository.CourseRepository;
+import com.example.studentgrades.repository.GradeRepository;
+import com.example.studentgrades.repository.StudentRepository;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class DataInitializer {
+    @Bean
+    public CommandLineRunner initData(StudentRepository studentRepository,
+                                    CourseRepository courseRepository,
+                                    GradeRepository gradeRepository) {
+        return args -> {
+            // Create students
+            Student student1 = new Student("John Doe");
+            Student student2 = new Student("Jane Smith");
+            Student student3 = new Student("Bob Johnson");
+
+            studentRepository.save(student1);
+            studentRepository.save(student2);
+            studentRepository.save(student3);
+
+            // Create courses
+            Course course1 = new Course("Mathematics");
+            Course course2 = new Course("Physics");
+            Course course3 = new Course("Computer Science");
+
+            courseRepository.save(course1);
+            courseRepository.save(course2);
+            courseRepository.save(course3);
+
+            // Enroll students in courses
+            course1.getEnrolledStudents().add(student1);
+            course1.getEnrolledStudents().add(student2);
+            student1.getEnrolledCourses().add(course1);
+            student2.getEnrolledCourses().add(course1);
+
+            course2.getEnrolledStudents().add(student2);
+            course2.getEnrolledStudents().add(student3);
+            student2.getEnrolledCourses().add(course2);
+            student3.getEnrolledCourses().add(course2);
+
+            course3.getEnrolledStudents().add(student1);
+            course3.getEnrolledStudents().add(student3);
+            student1.getEnrolledCourses().add(course3);
+            student3.getEnrolledCourses().add(course3);
+
+            courseRepository.save(course1);
+            courseRepository.save(course2);
+            courseRepository.save(course3);
+
+            // Add some grades
+            gradeRepository.save(new Grade(85.5, student1, course1));
+            gradeRepository.save(new Grade(90.0, student2, course1));
+            gradeRepository.save(new Grade(78.0, student2, course2));
+            gradeRepository.save(new Grade(92.5, student3, course2));
+            gradeRepository.save(new Grade(88.0, student1, course3));
+            gradeRepository.save(new Grade(95.0, student3, course3));
+        };
+    }
+}
+Application Properties
+
+application.properties
+
+properties
+# H2 Database Configuration
+spring.datasource.url=jdbc:h2:mem:studentgradesdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+# JPA/Hibernate Properties
+spring.jpa.show-sql=true
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.format_sql=true
+Main Application Class
+
+StudentGradesApplication.java
+
+java
+package com.example.studentgrades;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class StudentGradesApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(StudentGradesApplication.class, args);
+    }
+}
+
+
+
