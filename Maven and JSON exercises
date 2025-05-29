@@ -1,0 +1,264 @@
+xml
+<dependencies>
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.13.0</version>
+    </dependency>
+    <dependency>
+        <groupId>com.fasterxml.jackson.datatype</groupId>
+        <artifactId>jackson-datatype-jsr310</artifactId>
+        <version>2.13.0</version>
+    </dependency>
+</dependencies>
+Exercise 1 Solution
+
+java
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+public class Student {
+    private String name;
+    private int age;
+    private String email;
+
+    // Constructors, getters, and setters
+    public Student() {}
+
+    public Student(String name, int age, String email) {
+        this.name = name;
+        this.age = age;
+        this.email = email;
+    }
+
+    // Getters and setters
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public int getAge() { return age; }
+    public void setAge(int age) { this.age = age; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    @Override
+    public String toString() {
+        return "Student{name='" + name + "', age=" + age + ", email='" + email + "'}";
+    }
+
+    public static void main(String[] args) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Create student object
+        Student student = new Student("John Doe", 20, "john@example.com");
+
+        // Serialize to JSON
+        String json = mapper.writeValueAsString(student);
+        System.out.println("Serialized JSON: " + json);
+
+        // Deserialize back to Student object
+        Student deserializedStudent = mapper.readValue(json, Student.class);
+        System.out.println("Deserialized Student: " + deserializedStudent);
+    }
+}
+Exercise 2 Solution
+
+java
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+
+public class StudentWithCourses {
+    private String name;
+    private int age;
+
+    @JsonProperty("emailAddress") // Customize JSON field name
+    private String email;
+
+    @JsonIgnore // Ignore this field during serialization
+    private List<String> courses;
+
+    // Constructors, getters, and setters
+    public StudentWithCourses() {}
+
+    public StudentWithCourses(String name, int age, String email, List<String> courses) {
+        this.name = name;
+        this.age = age;
+        this.email = email;
+        this.courses = courses;
+    }
+
+    // Getters and setters
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public int getAge() { return age; }
+    public void setAge(int age) { this.age = age; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public List<String> getCourses() { return courses; }
+    public void setCourses(List<String> courses) { this.courses = courses; }
+
+    @Override
+    public String toString() {
+        return "StudentWithCourses{name='" + name + "', age=" + age +
+               ", email='" + email + "', courses=" + courses + "}";
+    }
+
+    public static void main(String[] args) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Create student object with null email
+        StudentWithCourses student = new StudentWithCourses("Jane Smith", 22, null,
+            List.of("Math", "Science"));
+
+        // Serialize to JSON (nulls will be included by default)
+        String json = mapper.writeValueAsString(student);
+        System.out.println("Serialized JSON: " + json);
+
+        // Deserialize back to StudentWithCourses object
+        StudentWithCourses deserializedStudent = mapper.readValue(json, StudentWithCourses.class);
+        System.out.println("Deserialized Student: " + deserializedStudent);
+    }
+}
+Exercise 3 Solution
+
+java
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.Map;
+
+public class StudentWithGrades {
+    private String name;
+    private int age;
+    private String email;
+    private List<String> courses;
+    private Map<String, Double> grades;
+
+    // Constructors, getters, and setters
+    public StudentWithGrades() {}
+
+    public StudentWithGrades(String name, int age, String email,
+                           List<String> courses, Map<String, Double> grades) {
+        this.name = name;
+        this.age = age;
+        this.email = email;
+        this.courses = courses;
+        this.grades = grades;
+    }
+
+    // Getters and setters
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public int getAge() { return age; }
+    public void setAge(int age) { this.age = age; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public List<String> getCourses() { return courses; }
+    public void setCourses(List<String> courses) { this.courses = courses; }
+    public Map<String, Double> getGrades() { return grades; }
+    public void setGrades(Map<String, Double> grades) { this.grades = grades; }
+
+    @Override
+    public String toString() {
+        return "StudentWithGrades{name='" + name + "', age=" + age +
+               ", email='" + email + "', courses=" + courses +
+               ", grades=" + grades + "}";
+    }
+
+    public static void main(String[] args) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Create student object with courses and grades
+        StudentWithGrades student = new StudentWithGrades("Alice Johnson", 21,
+            "alice@example.com",
+            List.of("Math", "Physics", "Chemistry"),
+            Map.of("Math", 90.5, "Physics", 88.0, "Chemistry", 92.3));
+
+        // Serialize to JSON
+        String json = mapper.writeValueAsString(student);
+        System.out.println("Serialized JSON: " + json);
+
+        // Deserialize back to StudentWithGrades object
+        StudentWithGrades deserializedStudent = mapper.readValue(json, StudentWithGrades.class);
+        System.out.println("Deserialized Student: " + deserializedStudent);
+    }
+}
+Exercise 4 Solution
+
+java
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.time.LocalDate;
+
+public class StudentWithBirthday {
+    private String name;
+    private int age;
+    private String email;
+
+    @JsonSerialize(using = LocalDateSerializer.class)
+    @JsonDeserialize(using = LocalDateDeserializer.class)
+    private LocalDate birthday;
+
+    // Constructors, getters, and setters
+    public StudentWithBirthday() {}
+
+    public StudentWithBirthday(String name, int age, String email, LocalDate birthday) {
+        this.name = name;
+        this.age = age;
+        this.email = email;
+        this.birthday = birthday;
+    }
+
+    // Getters and setters
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public int getAge() { return age; }
+    public void setAge(int age) { this.age = age; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public LocalDate getBirthday() { return birthday; }
+    public void setBirthday(LocalDate birthday) { this.birthday = birthday; }
+
+    @Override
+    public String toString() {
+        return "StudentWithBirthday{name='" + name + "', age=" + age +
+               ", email='" + email + "', birthday=" + birthday + "}";
+    }
+
+    public static void main(String[] args) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        // Register module to handle Java 8 date/time types
+        mapper.registerModule(new JavaTimeModule());
+
+        // Create student object with birthday
+        StudentWithBirthday student = new StudentWithBirthday("Bob Brown", 23,
+            "bob@example.com", LocalDate.of(2000, 5, 15));
+
+        // Serialize to JSON
+        String json = mapper.writeValueAsString(student);
+        System.out.println("Serialized JSON: " + json);
+
+        // Deserialize back to StudentWithBirthday object
+        StudentWithBirthday deserializedStudent = mapper.readValue(json, StudentWithBirthday.class);
+        System.out.println("Deserialized Student: " + deserializedStudent);
+    }
+}
+
+// Custom serializer and deserializer for LocalDate
+class LocalDateSerializer extends com.fasterxml.jackson.databind.JsonSerializer<LocalDate> {
+    @Override
+    public void serialize(LocalDate value, com.fasterxml.jackson.core.JsonGenerator gen,
+                         com.fasterxml.jackson.databind.SerializerProvider serializers)
+                         throws java.io.IOException {
+        gen.writeString(value.toString());
+    }
+}
+
+class LocalDateDeserializer extends com.fasterxml.jackson.databind.JsonDeserializer<LocalDate> {
+    @Override
+    public LocalDate deserialize(com.fasterxml.jackson.core.JsonParser p,
+                                com.fasterxml.jackson.databind.DeserializationContext ctxt)
+                                throws java.io.IOException {
+        return LocalDate.parse(p.getValueAsString());
+    }
+}
